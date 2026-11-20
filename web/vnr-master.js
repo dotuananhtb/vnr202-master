@@ -88,7 +88,7 @@ function setupSync() {
   if (location.protocol !== 'file:') {
     const script = document.createElement('script');
     script.type = 'module';
-    script.src = 'vnr-sync.js?v=1795177993';
+    script.src = 'vnr-sync.js?v=1795178638';
     document.body.append(script);
     return;
   }
@@ -719,6 +719,21 @@ function learnItems(all) {
   return pending.length ? pending : items;
 }
 
+/**
+ * Moi cau (ban co dong) xep theo so lan da ra de, nhieu nhat truoc; bang nhau thi theo chuong -> the.
+ * Cau chua lam dung len truoc, nen moi luot N cau la N cau "hot" nhat con chua thuoc.
+ */
+function hotItems() {
+  const items = groups
+    .map((g) => ({ g, card: cardById.get(g.card) }))
+    .filter(({ card }) => !settings.chapters.length || settings.chapters.includes(card.ch))
+    .flatMap(({ g, card }) => g.qids.map((id) => ({ card, question: questionById.get(id) })))
+    .sort((a, b) => (b.question.times || 1) - (a.question.times || 1)
+      || a.card.ch - b.card.ch || cardOrder.get(a.card.id) - cardOrder.get(b.card.id));
+  const pending = items.filter((item) => !state.learned[item.question.id]);
+  return pending.length ? pending : items;
+}
+
 function startMode(mode) {
   const scope = scopedCards();
   if (mode === 'redo') {
@@ -729,6 +744,9 @@ function startMode(mode) {
       return;
     }
     startQuiz(settings.count ? items.slice(0, settings.count) : items, 'redo');
+  } else if (mode === 'learn-hot') {
+    const items = hotItems();
+    startQuiz(settings.count ? items.slice(0, settings.count) : items, 'learn-all');
   } else if (mode === 'learn' || mode === 'learn-all') {
     const items = learnItems(mode === 'learn-all');
     startQuiz(settings.count ? items.slice(0, settings.count) : items, mode);
